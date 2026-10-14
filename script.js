@@ -9,43 +9,66 @@ const updateMobileCta = () => {
 };
 
 window.addEventListener('scroll', () => {
-  header.classList.toggle('scrolled', window.scrollY > 10);
+  header?.classList.toggle('scrolled', window.scrollY > 10);
   updateMobileCta();
 }, { passive: true });
 
-const visualObserver = new IntersectionObserver((entries) => {
-  entries.forEach((entry) => {
-    if (entry.isIntersecting) visibleVisuals.add(entry.target);
-    else visibleVisuals.delete(entry.target);
-  });
-  updateMobileCta();
-}, { threshold: 0.22 });
+if ('IntersectionObserver' in window) {
+  const visualObserver = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (entry.isIntersecting) visibleVisuals.add(entry.target);
+      else visibleVisuals.delete(entry.target);
+    });
+    updateMobileCta();
+  }, { threshold: 0.22 });
 
-document.querySelectorAll('.product-media, .automation-ui-card, .owner-image').forEach((visual) => visualObserver.observe(visual));
+  document.querySelectorAll('.product-media, .automation-ui-card, .owner-image, .wide-screenshot').forEach((visual) => visualObserver.observe(visual));
+
+  const revealObserver = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+        revealObserver.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.12 });
+
+  document.documentElement.classList.add('reveal-ready');
+  document.querySelectorAll('.reveal').forEach((el) => revealObserver.observe(el));
+  document.querySelectorAll('.reveal').forEach((el) => {
+    if (el.getBoundingClientRect().top < window.innerHeight) el.classList.add('visible');
+  });
+}
 
 menuButton?.addEventListener('click', () => {
+  if (!nav) return;
   const open = nav.classList.toggle('open');
   menuButton.setAttribute('aria-expanded', String(open));
+  menuButton.setAttribute('aria-label', open ? 'Tutup menu' : 'Buka menu');
 });
+
+const closeMenu = () => {
+  nav?.classList.remove('open');
+  menuButton?.setAttribute('aria-expanded', 'false');
+  menuButton?.setAttribute('aria-label', 'Buka menu');
+};
 
 nav?.querySelectorAll('a').forEach((link) => {
   link.addEventListener('click', () => {
-    nav.classList.remove('open');
-    menuButton?.setAttribute('aria-expanded', 'false');
+    closeMenu();
   });
 });
 
-const revealObserver = new IntersectionObserver((entries) => {
-  entries.forEach((entry) => {
-    if (entry.isIntersecting) {
-      entry.target.classList.add('visible');
-      revealObserver.unobserve(entry.target);
-    }
-  });
-}, { threshold: 0.12 });
+document.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape') closeMenu();
+});
 
-document.querySelectorAll('.reveal').forEach((el) => revealObserver.observe(el));
-document.getElementById('year').textContent = new Date().getFullYear();
+document.addEventListener('click', (event) => {
+  if (nav?.classList.contains('open') && !nav.contains(event.target) && !menuButton?.contains(event.target)) closeMenu();
+});
+
+const year = document.getElementById('year');
+if (year) year.textContent = new Date().getFullYear();
 
 document.querySelectorAll('[data-cta]').forEach((cta) => {
   cta.addEventListener('click', () => {
